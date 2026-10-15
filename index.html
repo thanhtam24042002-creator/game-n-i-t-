@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Nối Từ Có Nghĩa - 词语接龙</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #ffe4e1; /* Pastel Pink */
+            --bg-secondary: #fff0f5; /* Lavender Blush */
+            --primary: #ff6b81; /* Watermelon Pink */
+            --primary-dark: #ff4757;
+            --accent: #ffa502; /* Orange Gold */
+            --success: #2ed573; /* Mint Green */
+            --text-main: #2f3542;
+            --text-light: #747d8c;
+            --white: #ffffff;
+            --shadow-btn: 0 6px 0px rgba(255, 107, 129, 0.4);
+            --shadow-card: 0 8px 20px rgba(0,0,0,0.08);
+            --font-vi: 'Nunito', sans-serif;
+            --font-cn: 'KaiTi', 'STKaiti', '楷体', serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: var(--font-vi);
+            background: linear-gradient(135deg, var(--bg-color), #fad390);
+            color: var(--text-main);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Nền trang trí dễ thương */
+        body::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-image: radial-gradient(var(--white) 2px, transparent 2px);
+            background-size: 30px 30px;
+            opacity: 0.4;
+            z-index: -1;
+        }
+
+        .screen {
+            display: none;
+            flex-direction: column;
+            width: 100%;
+            height: 100%;
+            max-width: 900px;
+            margin: 0 auto;
+            position: relative;
+            padding: 15px;
+        }
+        .screen.active {
+            display: flex;
+            animation: fadeIn 0.4s ease-out;
+        }
+
+        .btn {
+            background: var(--primary);
+            color: var(--white);
+            border: none;
+            padding: 12px 25px;
+            font-size: 1.1rem;
+            font-weight: 900;
+            border-radius: 20px;
+            cursor: pointer;
+            box-shadow: var(--shadow-btn);
+            transition: all 0.1s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            text-transform: uppercase;
+        }
+        .btn:active {
+            transform: translateY(6px);
+            box-shadow: 0 0px 0px rgba(255, 107, 129, 0.4);
+        }
+        .btn-outline {
+            background: var(--white);
+            color: var(--primary);
+            border: 3px solid var(--primary);
+            box-shadow: 0 6px 0px var(--primary);
+        }
+        .btn-outline:active { box-shadow: 0 0px 0px var(--primary); }
+        .btn-accent { background: var(--accent); box-shadow: 0 6px 0px #eccc68; color: white;}
+        .btn-accent:active { box-shadow: 0 0px 0px #eccc68; }
+
+        #screen-home {
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+        .home-title {
+            font-size: clamp(3rem, 8vw, 4.5rem);
+            color: var(--primary);
+            font-weight: 900;
+            text-shadow: 4px 4px 0 var(--white);
+            line-height: 1.1;
+            margin-bottom: 5px;
+            position: relative;
+        }
+        .home-subtitle {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--accent);
+            background: var(--white);
+            padding: 5px 20px;
+            border-radius: 20px;
+            border: 2px dashed var(--accent);
+            margin-bottom: 20px;
+            display: inline-block;
+        }
+        .decor-icon {
+            font-size: 4rem;
+            animation: bounce 2s infinite ease-in-out;
+            margin-bottom: 10px;
+        }
+
+        .game-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            flex-shrink: 0;
+        }
+        .title-small { font-size: 1.5rem; font-weight: 900; color: var(--primary); text-shadow: 2px 2px 0 white;}
+        
+        .hud {
+            display: flex;
+            justify-content: space-between;
+            background: var(--white);
+            padding: 10px 15px;
+            border-radius: 20px;
+            box-shadow: var(--shadow-card);
+            margin-bottom: 15px;
+            flex-shrink: 0;
+            border: 3px solid var(--bg-secondary);
+        }
+        .hud-box { display: flex; flex-direction: column; align-items: center; flex: 1;}
+        .hud-label { font-size: 0.75rem; font-weight: 900; color: var(--text-light); text-transform: uppercase; }
+        .hud-val { font-size: 1.4rem; font-weight: 900; color: var(--primary-dark); }
+        .timer-val { color: var(--primary); font-size: 1.8rem; animation: pulse 1s infinite;}
+        
+        .combo-text { color: var(--accent); position: absolute; font-size: 1.2rem; font-weight: 900; top: -10px; right: 0; opacity: 0; transition: 0.3s; text-shadow: 1px 1px 0 #fff;}
+        .combo-text.show { opacity: 1; transform: translateY(-15px) scale(1.2); }
+
+        .board-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            background: rgba(255,255,255,0.6);
+            border-radius: 25px;
+            padding: 15px;
+            border: 3px dashed var(--primary);
+            overflow-y: auto;
+            position: relative;
+        }
+        .grid-area {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
+            gap: 12px;
+            align-content: center;
+            justify-content: center;
+        }
+        
+        .tile {
+            background: var(--white);
+            border: 4px solid var(--bg-secondary);
+            border-radius: 18px;
+            aspect-ratio: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 6px 0 var(--bg-secondary);
+            transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+        }
+        .tile:active:not(.matched) {
+            transform: translateY(4px);
+            box-shadow: 0 2px 0 var(--bg-secondary);
+        }
+        .tile-char {
+            font-family: var(--font-cn);
+            font-size: clamp(2rem, 6vw, 3rem);
+            font-weight: bold;
+            color: var(--text-main);
+            line-height: 1;
+        }
+        
+        /* Trạng thái Tile */
+        .tile.selected {
+            border-color: var(--primary);
+            box-shadow: 0 6px 0 var(--primary);
+            transform: translateY(-4px);
+            background: #fff4f6;
+        }
+        .tile.matched {
+            visibility: hidden; /* Ẩn đi khi ghép đúng */
+            opacity: 0;
+            pointer-events: none;
+            transition: visibility 0s 0.3s, opacity 0.3s;
+        }
+        .tile.wrong {
+            animation: shake 0.4s ease;
+            border-color: var(--primary-dark);
+            background: #ffebef;
+        }
+        .tile.hint-glow {
+            animation: hintPulse 1s infinite alternate;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 15px;
+            flex-shrink: 0;
+            flex-wrap: wrap;
+        }
+
+        .toast-container {
+            position: absolute;
+            top: 40%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+        .toast {
+            background: rgba(255,255,255,0.95);
+            padding: 15px 30px;
+            border-radius: 20px;
+            font-size: 1.2rem;
+            font-weight: 900;
+            box-shadow: var(--shadow-card);
+            border: 3px solid transparent;
+            opacity: 0;
+            transform: scale(0.5);
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            text-align: center;
+        }
+        .toast.show { opacity: 1; transform: scale(1); }
+        .toast.success { border-color: var(--success); color: var(--success); }
+        .toast.error { border-color: var(--primary-dark); color: var(--primary-dark); }
+        
+        .toast-detail { font-size: 1rem; color: var(--text-main); margin-top: 5px; font-weight: bold;}
+        .toast-hanzi { font-family: var(--font-cn); font-size: 2rem; color: var(--primary); margin: 5px 0;}
+
+        #screen-result {
+            padding: 20px;
+            align-items: center;
+        }
+        .result-card {
+            background: var(--white);
+            border-radius: 30px;
+            padding: 30px 20px;
+            width: 100%;
+            max-width: 600px;
+            text-align: center;
+            box-shadow: var(--shadow-card);
+            border: 4px solid var(--primary);
+            display: flex;
+            flex-direction: column;
+            max-height: 90vh;
+        }
+        .result-icon { font-size: 5rem; margin-bottom: 10px; }
+        .result-title { font-size: 2.5rem; color: var(--primary); font-weight: 900; margin-bottom: 5px; }
+        .result-msg { font-size: 1.1rem; color: var(--text-light); font-weight: bold; margin-bottom: 20px; }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .stat-item { background: var(--bg-secondary); padding: 15px; border-radius: 20px; border: 2px dashed #f8a5c2;}
+        
+        .review-section {
+            flex: 1;
+            overflow-y: auto;
+            border-top: 2px solid #eee;
+            padding-top: 15px;
+            text-align: left;
+        }
+        .review-section::-webkit-scrollbar { width: 6px; }
+        .review-section::-webkit-scrollbar-thumb { background: #f8a5c2; border-radius: 10px; }
+        
+        .review-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 15px;
+            background: #fdfdfd;
+            border-radius: 15px;
+            margin-bottom: 8px;
+            border: 1px solid #eee;
+        }
+        .r-hz { font-family: var(--font-cn); font-size: 1.8rem; font-weight: bold; color: var(--primary); }
+        .r-py { font-size: 1rem; color: var(--text-light); margin-left: 10px;}
+        .r-vi { font-weight: 900; font-size: 1rem; text-align: right;}
+
+        /* Overlay Tạm dừng */
+        .pause-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255,255,255,0.9); z-index: 200;
+            display: none; flex-direction: column; align-items: center; justify-content: center;
+            border-radius: 25px;
+        }
+
+        /* Animations */
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-15px); } }
+        @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-8px) rotate(-3deg); } 75% { transform: translateX(8px) rotate(3deg); } }
+        @keyframes hintPulse { from { border-color: var(--accent); box-shadow: 0 0 10px var(--accent); } to { border-color: var(--white); box-shadow: 0 0 0px var(--accent); } }
+        
+        .sound-toggle { position: absolute; top: 15px; right: 15px; z-index: 50; padding: 10px; font-size: 1.2rem; border-radius: 50%; width: 45px; height: 45px;}
+        
+        @media (max-width: 600px) {
+            .grid-area { grid-template-columns: repeat(4, 1fr); gap: 8px; }
+            .tile-char { font-size: 2rem; }
+            .btn { font-size: 0.9rem; padding: 10px 15px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="screen-home" class="screen active">
+        <button class="btn btn-outline sound-toggle" onclick="toggleSound()" id="btn-sound">🔊</button>
+        
+        <div class="decor-icon">✨🧩✨</div>
+        <h1 class="home-title">NỐI TỪ<br>CÓ NGHĨA</h1>
+        <div class="home-subtitle">词语接龙 – HSK1-2</div>
+        
+        <p style="font-size: 1.1rem; color: var(--text-light); font-weight: bold; margin-bottom: 30px; max-width: 80%; line-height: 1.5;">
+            Chọn hai chữ Hán để ghép thành một từ tiếng Trung có nghĩa!<br>
+            <span style="font-size: 0.9rem;">(Mỗi ván 12 từ - Thời gian: 120 giây)</span>
+        </p>
+
+        <button class="btn" style="font-size: 1.5rem; padding: 15px 50px;" onclick="startGame()">▶ BẮT ĐẦU</button>
+    </div>
+
+    <div id="screen-game" class="screen">
+        <div class="game-header">
+            <div class="title-small">🧩 Nối Từ Có Nghĩa</div>
+            <button class="btn btn-outline" style="padding: 5px 15px; border-radius: 12px; font-size: 0.9rem;" onclick="togglePause()" id="btn-pause">Ⅱ Tạm dừng</button>
+        </div>
+
+        <div class="hud">
+            <div class="hud-box">
+                <span class="hud-label">Thời gian</span>
+                <span class="hud-val timer-val" id="ui-time">02:00</span>
+            </div>
+            <div class="hud-box" style="border-left: 2px dashed #eee; border-right: 2px dashed #eee; position: relative;">
+                <span class="hud-label">Điểm số</span>
+                <span class="hud-val" id="ui-score">0</span>
+                <div class="combo-text" id="ui-combo">Combo x2!</div>
+            </div>
+            <div class="hud-box">
+                <span class="hud-label">Đã ghép</span>
+                <span class="hud-val"><span id="ui-progress">0</span>/12</span>
+            </div>
+        </div>
+
+        <div class="board-container">
+            <div class="grid-area" id="board">
+                <!-- Chữ Hán render ở đây -->
+            </div>
+            
+            <div class="pause-overlay" id="pause-overlay">
+                <h2 style="font-size: 2rem; color: var(--primary); margin-bottom: 20px;">ĐÃ TẠM DỪNG</h2>
+                <button class="btn" onclick="togglePause()">▶ Tiếp tục chơi</button>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="btn btn-accent" onclick="useHint()">💡 Gợi ý</button>
+            <button class="btn btn-outline" onclick="quitGame()">🏠 Thoát</button>
+        </div>
+
+        <div class="toast-container" id="toast-container">
+            <!-- Toast hiện ở đây -->
+        </div>
+    </div>
+
+    <div id="screen-result" class="screen">
+        <div class="result-card">
+            <div class="result-icon" id="res-icon">🏆</div>
+            <h2 class="result-title" id="res-title">Cao thủ từ vựng!</h2>
+            <p class="result-msg" id="res-msg">Hoàn thành xuất sắc thử thách.</p>
+            
+            <div class="stats-grid">
+                <div class="stat-item"><div class="hud-label">Tổng điểm</div><div class="hud-val" id="res-score">0</div></div>
+                <div class="stat-item"><div class="hud-label">Hoàn thành</div><div class="hud-val" id="res-correct" style="color: var(--success);">0/12</div></div>
+                <div class="stat-item"><div class="hud-label">Lỗi sai</div><div class="hud-val" id="res-wrong" style="color: var(--primary-dark);">0</div></div>
+                <div class="stat-item"><div class="hud-label">Combo Max</div><div class="hud-val" id="res-combo">0</div></div>
+            </div>
+
+            <h3 style="font-size: 1.1rem; color: var(--primary); text-align: left; margin-bottom: 5px;">📚 Các từ đã học vòng này:</h3>
+            <div class="review-section" id="review-list">
+                <!-- List từ vựng -->
+            </div>
+
+            <div style="display: flex; gap: 10px; justify-content: center; margin-top: 15px; flex-shrink: 0;">
+                <button class="btn btn-outline" onclick="showScreen('screen-home')" style="flex:1;">🏠 Trang chủ</button>
+                <button class="btn" onclick="startGame()" style="flex:1;">🔄 Chơi lại</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Cấu trúc: { word: "学校", parts: ["学", "校"], pinyin: "xuéxiào", meaning: "trường học" }
+        const fullVocabulary = [
+            { word: "电脑", parts: ["电", "脑"], pinyin: "diànnǎo", meaning: "máy tính" },
+            { word: "天气", parts: ["天", "气"], pinyin: "tiānqì", meaning: "thời tiết" },
+            { word: "北京", parts: ["北", "京"], pinyin: "Běijīng", meaning: "Bắc Kinh" },
+            { word: "旅游", parts: ["旅", "游"], pinyin: "lǚyóu", meaning: "du lịch" },
+            { word: "足球", parts: ["足", "球"], pinyin: "zúqiú", meaning: "bóng đá" },
+            { word: "报纸", parts: ["报", "纸"], pinyin: "bàozhǐ", meaning: "báo chí" },
+            { word: "桌子", parts: ["桌", "子"], pinyin: "zhuōzi", meaning: "cái bàn" },
+            { word: "羊肉", parts: ["羊", "肉"], pinyin: "yángròu", meaning: "thịt cừu" },
+            { word: "电话", parts: ["电", "话"], pinyin: "diànhuà", meaning: "điện thoại" },
+            { word: "飞机", parts: ["飞", "机"], pinyin: "fēijī", meaning: "máy bay" },
+            { word: "已经", parts: ["已", "经"], pinyin: "yǐjīng", meaning: "đã" },
+            { word: "现在", parts: ["现", "在"], pinyin: "xiànzài", meaning: "bây giờ" },
+            { word: "昨天", parts: ["昨", "天"], pinyin: "zuótiān", meaning: "hôm qua" },
+            { word: "上午", parts: ["上", "午"], pinyin: "shàngwǔ", meaning: "buổi sáng" },
+            { word: "中午", parts: ["中", "午"], pinyin: "zhōngwǔ", meaning: "buổi trưa" },
+            { word: "衣服", parts: ["衣", "服"], pinyin: "yīfu", meaning: "quần áo" },
+            { word: "便宜", parts: ["便", "宜"], pinyin: "piányi", meaning: "rẻ" },
+            { word: "游泳", parts: ["游", "泳"], pinyin: "yóuyǒng", meaning: "bơi lội" },
+            { word: "工作", parts: ["工", "作"], pinyin: "gōngzuò", meaning: "công việc" },
+            { word: "公司", parts: ["公", "司"], pinyin: "gōngsī", meaning: "công ty" },
+            { word: "医院", parts: ["医", "院"], pinyin: "yīyuàn", meaning: "bệnh viện" },
+            { word: "饭店", parts: ["饭", "店"], pinyin: "fàndiàn", meaning: "nhà hàng" },
+            { word: "学校", parts: ["学", "校"], pinyin: "xuéxiào", meaning: "trường học" },
+            { word: "房间", parts: ["房", "间"], pinyin: "fángjiān", meaning: "căn phòng" },
+            { word: "介绍", parts: ["介", "绍"], pinyin: "jièshào", meaning: "giới thiệu" },
+            { word: "起床", parts: ["起", "床"], pinyin: "qǐchuáng", meaning: "thức dậy" },
+            { word: "睡觉", parts: ["睡", "觉"], pinyin: "shuìjiào", meaning: "ngủ" },
+            { word: "认识", parts: ["认", "识"], pinyin: "rènshi", meaning: "quen biết" },
+            { word: "大学", parts: ["大", "学"], pinyin: "dàxué", meaning: "đại học" },
+            { word: "一起", parts: ["一", "起"], pinyin: "yìqǐ", meaning: "cùng nhau" },
+            { word: "高兴", parts: ["高", "兴"], pinyin: "gāoxìng", meaning: "vui vẻ" },
+            { word: "东西", parts: ["东", "西"], pinyin: "dōngxi", meaning: "đồ vật" },
+            { word: "看见", parts: ["看", "见"], pinyin: "kànjiàn", meaning: "nhìn thấy" },
+            { word: "先生", parts: ["先", "生"], pinyin: "xiānsheng", meaning: "ông, ngài" },
+            { word: "一些", parts: ["一", "些"], pinyin: "yìxiē", meaning: "một vài" },
+            { word: "一下", parts: ["一", "下"], pinyin: "yíxià", meaning: "một lát" },
+            { word: "回来", parts: ["回", "来"], pinyin: "huílái", meaning: "trở về" },
+            { word: "出门", parts: ["出", "门"], pinyin: "chūmén", meaning: "ra ngoài" },
+            { word: "出院", parts: ["出", "院"], pinyin: "chūyuàn", meaning: "xuất viện" },
+            { word: "牛奶", parts: ["牛", "奶"], pinyin: "niúnǎi", meaning: "sữa bò" },
+            { word: "你好", parts: ["你", "好"], pinyin: "nǐ hǎo", meaning: "xin chào" },
+            { word: "同学", parts: ["同", "学"], pinyin: "tóngxué", meaning: "bạn học" },
+            { word: "再见", parts: ["再", "见"], pinyin: "zàijiàn", meaning: "tạm biệt" },
+            { word: "朋友", parts: ["朋", "友"], pinyin: "péngyou", meaning: "bạn bè" },
+            { word: "休息", parts: ["休", "息"], pinyin: "xiūxi", meaning: "nghỉ ngơi" },
+            { word: "谢谢", parts: ["谢", "谢"], pinyin: "xièxie", meaning: "cảm ơn" },
+            { word: "名字", parts: ["名", "字"], pinyin: "míngzi", meaning: "tên" },
+            { word: "什么", parts: ["什", "么"], pinyin: "shénme", meaning: "cái gì" },
+            { word: "哪里", parts: ["哪", "里"], pinyin: "nǎlǐ", meaning: "ở đâu" },
+            { word: "英国", parts: ["英", "国"], pinyin: "Yīngguó", meaning: "nước Anh" },
+            { word: "日本", parts: ["日", "本"], pinyin: "Rìběn", meaning: "Nhật Bản" },
+            { word: "美国", parts: ["美", "国"], pinyin: "Měiguó", meaning: "nước Mỹ" },
+            { word: "今年", parts: ["今", "年"], pinyin: "jīnnián", meaning: "năm nay" },
+            { word: "今天", parts: ["今", "天"], pinyin: "jīntiān", meaning: "hôm nay" },
+            { word: "女儿", parts: ["女", "儿"], pinyin: "nǚ'ér", meaning: "con gái" },
+            { word: "儿子", parts: ["儿", "子"], pinyin: "érzi", meaning: "con trai" },
+            { word: "多少", parts: ["多", "少"], pinyin: "duōshao", meaning: "bao nhiêu" },
+            { word: "汉字", parts: ["汉", "字"], pinyin: "Hànzì", meaning: "chữ Hán" }
+        ];
+
+        const WORDS_PER_ROUND = 12;
+        const ROUND_TIME = 120; // Giây
+
+        let gameState = {
+            score: 0,
+            combo: 0,
+            maxCombo: 0,
+            correctCount: 0,
+            wrongCount: 0,
+            timeLeft: ROUND_TIME,
+            timerInterval: null,
+            isPaused: false,
+            soundEnabled: true,
+            currentRoundWords: [], // Danh sách object từ vựng của ván hiện tại
+            boardTiles: [], // Dữ liệu từng ô chữ trên bảng
+            selectedTileIds: [], // Chứa ID của tối đa 2 ô đang được chọn
+            recentHistoryWords: [], // Lịch sử chống lặp (lưu string word)
+            isChecking: false // Khóa thao tác khi đang kiểm tra
+        };
+
+        let audioCtx;
+        function initAudio() {
+            if (!audioCtx) {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                audioCtx = new AudioContext();
+            }
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+        }
+
+        const Sound = {
+            play: (type) => {
+                if (!gameState.soundEnabled) return;
+                initAudio();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                const now = audioCtx.currentTime;
+
+                switch(type) {
+                    case 'click':
+                        osc.type = 'sine';
+                        osc.frequency.setValueAtTime(600, now);
+                        osc.frequency.exponentialRampToValueAtTime(300, now + 0.1);
+                        gain.gain.setValueAtTime(0.2, now);
+                        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                        osc.start(now); osc.stop(now + 0.1);
+                        break;
+                    case 'correct':
+                        osc.type = 'triangle';
+                        osc.frequency.setValueAtTime(523.25, now); // C5
+                        osc.frequency.setValueAtTime(659.25, now + 0.1); // E5
+                        osc.frequency.setValueAtTime(1046.50, now + 0.2); // C6
+                        gain.gain.setValueAtTime(0, now);
+                        gain.gain.linearRampToValueAtTime(0.3, now + 0.05);
+                        gain.gain.setValueAtTime(0.3, now + 0.25);
+                        gain.gain.linearRampToValueAtTime(0, now + 0.35);
+                        osc.start(now); osc.stop(now + 0.35);
+                        break;
+                    case 'wrong':
+                        osc.type = 'sawtooth';
+                        osc.frequency.setValueAtTime(200, now);
+                        osc.frequency.exponentialRampToValueAtTime(150, now + 0.2);
+                        gain.gain.setValueAtTime(0.2, now);
+                        gain.gain.linearRampToValueAtTime(0, now + 0.2);
+                        osc.start(now); osc.stop(now + 0.2);
+                        break;
+                    case 'win':
+                        osc.type = 'square';
+                        [523.25, 659.25, 783.99, 1046.50].forEach((f, i) => {
+                            osc.frequency.setValueAtTime(f, now + (i * 0.15));
+                        });
+                        gain.gain.setValueAtTime(0.15, now);
+                        gain.gain.linearRampToValueAtTime(0, now + 0.8);
+                        osc.start(now); osc.stop(now + 0.8);
+                        break;
+                }
+            }
+        };
+
+        function toggleSound() {
+            gameState.soundEnabled = !gameState.soundEnabled;
+            document.getElementById('btn-sound').innerText = gameState.soundEnabled ? '🔊' : '🔇';
+        }
+
+        function showScreen(id) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+        }
+
+        function shuffleArray(array) {
+            let curId = array.length, temp, randId;
+            while (0 !== curId) {
+                randId = Math.floor(Math.random() * curId);
+                curId -= 1;
+                temp = array[curId];
+                array[curId] = array[randId];
+                array[randId] = temp;
+            }
+            return array;
+        }
+
+        function formatTime(seconds) {
+            const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+            const s = (seconds % 60).toString().padStart(2, '0');
+            return `${m}:${s}`;
+        }
+
+        function startGame() {
+            initAudio();
+            Sound.play('click');
+            
+            // Reset State
+            gameState.score = 0;
+            gameState.combo = 0;
+            gameState.maxCombo = 0;
+            gameState.correctCount = 0;
+            gameState.wrongCount = 0;
+            gameState.timeLeft = ROUND_TIME;
+            gameState.isPaused = false;
+            gameState.isChecking = false;
+            gameState.selectedTileIds = [];
+            
+            document.getElementById('pause-overlay').style.display = 'none';
+
+            generateRoundData();
+            renderBoard();
+            updateHUD();
+
+            showScreen('screen-game');
+            
+            if (gameState.timerInterval) clearInterval(gameState.timerInterval);
+            gameState.timerInterval = setInterval(gameTick, 1000);
+        }
+
+        function generateRoundData() {
+            // 1. Lọc từ vựng tránh lặp lại 2 ván gần nhất
+            let availableWords = fullVocabulary.filter(w => !gameState.recentHistoryWords.includes(w.word));
+            
+            // Nếu list lọc xong quá ít, reset lịch sử
+            if (availableWords.length < WORDS_PER_ROUND) {
+                gameState.recentHistoryWords = [];
+                availableWords = [...fullVocabulary];
+            }
+
+            // 2. Chọn ngẫu nhiên N từ
+            shuffleArray(availableWords);
+            gameState.currentRoundWords = availableWords.slice(0, WORDS_PER_ROUND).map(w => ({...w, completed: false}));
+            
+            // 3. Cập nhật lịch sử
+            gameState.recentHistoryWords = gameState.currentRoundWords.map(w => w.word);
+
+            // 4. Tách chữ thành từng ô gạch
+            gameState.boardTiles = [];
+            let idCounter = 0;
+            gameState.currentRoundWords.forEach(wordObj => {
+                // Tạo ô cho chữ thứ 1
+                gameState.boardTiles.push({ id: `t_${idCounter++}`, char: wordObj.parts[0], wordRef: wordObj.word });
+                // Tạo ô cho chữ thứ 2
+                gameState.boardTiles.push({ id: `t_${idCounter++}`, char: wordObj.parts[1], wordRef: wordObj.word });
+            });
+
+            // 5. Trộn đều các ô
+            shuffleArray(gameState.boardTiles);
+        }
+
+        function renderBoard() {
+            const board = document.getElementById('board');
+            board.innerHTML = '';
+            
+            gameState.boardTiles.forEach(tile => {
+                const div = document.createElement('div');
+                div.className = 'tile';
+                div.id = tile.id;
+                div.innerHTML = `<span class="tile-char">${tile.char}</span>`;
+                div.onclick = () => selectTile(tile.id);
+                board.appendChild(div);
+            });
+        }
+
+        function selectTile(id) {
+            if (gameState.isPaused || gameState.isChecking) return;
+            
+            const el = document.getElementById(id);
+            if (el.classList.contains('matched')) return; // Bỏ qua ô đã ăn
+
+            const index = gameState.selectedTileIds.indexOf(id);
+            if (index > -1) {
+                // Bỏ chọn nếu click lại
+                gameState.selectedTileIds.splice(index, 1);
+                el.classList.remove('selected');
+                Sound.play('click');
+                return;
+            }
+
+            // Đã chọn 2 cái rồi thì chặn click thêm
+            if (gameState.selectedTileIds.length >= 2) return;
+
+            // Chọn ô
+            gameState.selectedTileIds.push(id);
+            el.classList.add('selected');
+            Sound.play('click');
+
+            // Nếu đã chọn đủ 2 ô -> Kiểm tra
+            if (gameState.selectedTileIds.length === 2) {
+                gameState.isChecking = true;
+                setTimeout(checkMatch, 150); // Delay chút xíu cho mượt UI
+            }
+        }
+
+        function checkMatch() {
+            const id1 = gameState.selectedTileIds[0];
+            const id2 = gameState.selectedTileIds[1];
+            
+            const t1 = gameState.boardTiles.find(t => t.id === id1);
+            const t2 = gameState.boardTiles.find(t => t.id === id2);
+
+            // Nối thử 2 chiều
+            const str1 = t1.char + t2.char;
+            const str2 = t2.char + t1.char;
+
+            // Tìm xem có khớp từ nào trong danh sách mục tiêu chưa hoàn thành không
+            const matchedWord = gameState.currentRoundWords.find(w => 
+                !w.completed && (w.word === str1 || w.word === str2)
+            );
+
+            const el1 = document.getElementById(id1);
+            const el2 = document.getElementById(id2);
+
+            if (matchedWord) {
+                // ĐÚNG
+                handleCorrect(matchedWord, el1, el2);
+            } else {
+                // SAI
+                handleWrong(el1, el2);
+            }
+        }
+
+        function handleCorrect(matchedWord, el1, el2) {
+            Sound.play('correct');
+            matchedWord.completed = true;
+            gameState.correctCount++;
+            
+            // Tính Combo và Điểm
+            gameState.combo++;
+            if (gameState.combo > gameState.maxCombo) gameState.maxCombo = gameState.combo;
+            
+            let pts = 100;
+            if (gameState.combo >= 5) { pts += 100; showComboMsg(gameState.combo); }
+            else if (gameState.combo >= 3) { pts += 50; showComboMsg(gameState.combo); }
+            
+            gameState.score += pts;
+
+            // Toast thông báo
+            showToast(matchedWord.word, matchedWord.pinyin, matchedWord.meaning, 'success');
+
+            // Ẩn ô
+            el1.classList.remove('selected');
+            el2.classList.remove('selected');
+            el1.classList.add('matched');
+            el2.classList.add('matched');
+
+            finishCheck();
+
+            if (gameState.correctCount >= WORDS_PER_ROUND) {
+                setTimeout(() => endGame(true), 500);
+            }
+        }
+
+        function handleWrong(el1, el2) {
+            Sound.play('wrong');
+            gameState.combo = 0;
+            gameState.wrongCount++;
+            
+            el1.classList.add('wrong');
+            el2.classList.add('wrong');
+            
+            showToast("Thử lại nhé!", "", "Hai chữ này không ghép được", "error");
+
+            setTimeout(() => {
+                el1.classList.remove('selected', 'wrong');
+                el2.classList.remove('selected', 'wrong');
+                finishCheck();
+            }, 600);
+        }
+
+        function finishCheck() {
+            gameState.selectedTileIds = [];
+            gameState.isChecking = false;
+            updateHUD();
+        }
+
+        function showComboMsg(combo) {
+            const el = document.getElementById('ui-combo');
+            el.innerText = `Combo x${combo}!`;
+            el.classList.add('show');
+            setTimeout(() => el.classList.remove('show'), 1500);
+        }
+
+        function showToast(hanzi, py, vi, type) {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type} show`;
+            
+            if (type === 'success') {
+                toast.innerHTML = `
+                    <div style="color:var(--success)">Chính xác!</div>
+                    <div class="toast-hanzi">${hanzi}</div>
+                    <div class="toast-detail">${py} • ${vi}</div>
+                `;
+            } else {
+                toast.innerHTML = `<div style="color:var(--primary-dark)">${hanzi}</div><div class="toast-detail">${vi}</div>`;
+            }
+            
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 300);
+            }, 1200);
+        }
+
+        function useHint() {
+            if (gameState.isPaused || gameState.isChecking) return;
+            Sound.play('click');
+            
+            // Xóa highlight cũ
+            document.querySelectorAll('.hint-glow').forEach(el => el.classList.remove('hint-glow'));
+
+            // Tìm từ chưa hoàn thành đầu tiên
+            const wordToHint = gameState.currentRoundWords.find(w => !w.completed);
+            if (!wordToHint) return;
+
+            // Tìm 2 ô có wordRef trùng (và chưa matched)
+            const hintTiles = gameState.boardTiles.filter(t => t.wordRef === wordToHint.word);
+            
+            // Phát sáng 2 ô
+            hintTiles.forEach(t => {
+                const el = document.getElementById(t.id);
+                if(el && !el.classList.contains('matched')) {
+                    el.classList.add('hint-glow');
+                    setTimeout(() => el.classList.remove('hint-glow'), 2000);
+                }
+            });
+        }
+
+        function gameTick() {
+            if (gameState.isPaused) return;
+            gameState.timeLeft--;
+            updateHUD();
+            
+            if (gameState.timeLeft <= 0) {
+                endGame(false);
+            }
+        }
+
+        function togglePause() {
+            Sound.play('click');
+            gameState.isPaused = !gameState.isPaused;
+            document.getElementById('pause-overlay').style.display = gameState.isPaused ? 'flex' : 'none';
+            document.getElementById('btn-pause').innerText = gameState.isPaused ? '▶ Tiếp tục' : 'Ⅱ Tạm dừng';
+        }
+
+        function updateHUD() {
+            document.getElementById('ui-score').innerText = gameState.score;
+            document.getElementById('ui-progress').innerText = gameState.correctCount;
+            
+            const timeEl = document.getElementById('ui-time');
+            timeEl.innerText = formatTime(gameState.timeLeft);
+            if (gameState.timeLeft <= 10) timeEl.style.color = 'var(--primary-dark)';
+            else timeEl.style.color = 'var(--primary)';
+        }
+
+        function endGame(isWin) {
+            clearInterval(gameState.timerInterval);
+            
+            let title, icon, msg;
+            if (isWin) {
+                Sound.play('win');
+                title = "Cao thủ từ vựng!"; icon = "🏆";
+                msg = `Tuyệt vời! Hoàn thành sớm ${gameState.timeLeft} giây.`;
+                gameState.score += (gameState.timeLeft * 5); // Điểm thưởng thời gian
+            } else {
+                Sound.play('wrong');
+                title = "Hết giờ rồi!"; icon = "⏱️";
+                msg = "Cố gắng nhanh tay hơn ở lượt sau nhé!";
+            }
+
+            // Đổ data lên màn hình Result
+            document.getElementById('res-icon').innerText = icon;
+            document.getElementById('res-title').innerText = title;
+            document.getElementById('res-msg').innerText = msg;
+            
+            document.getElementById('res-score').innerText = gameState.score;
+            document.getElementById('res-correct').innerText = `${gameState.correctCount}/${WORDS_PER_ROUND}`;
+            document.getElementById('res-wrong').innerText = gameState.wrongCount;
+            document.getElementById('res-combo').innerText = gameState.maxCombo;
+
+            // Danh sách ôn tập
+            const reviewList = document.getElementById('review-list');
+            reviewList.innerHTML = '';
+            gameState.currentRoundWords.forEach(w => {
+                reviewList.innerHTML += `
+                    <div class="review-item" style="${!w.completed ? 'border-left: 5px solid var(--primary-dark);' : 'border-left: 5px solid var(--success);'}">
+                        <div style="display:flex; align-items: baseline;">
+                            <span class="r-hz">${w.word}</span>
+                            <span class="r-py">${w.pinyin}</span>
+                        </div>
+                        <span class="r-vi">${w.meaning}</span>
+                    </div>
+                `;
+            });
+
+            showScreen('screen-result');
+        }
+
+        function quitGame() {
+            Sound.play('click');
+            if(confirm("Bạn có chắc muốn thoát ván này không?")) {
+                clearInterval(gameState.timerInterval);
+                showScreen('screen-home');
+            }
+        }
+    </script>
+</body>
+</html>
